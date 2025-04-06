@@ -1,0 +1,44 @@
+FROM php:8.2-fpm
+
+# Create www-data user with the same UID as your host user (1000)
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libpq-dev \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
+
+# Copy composer files first (caching layer)
+COPY composer.json composer.lock ./
+RUN composer install --no-scripts --no-interaction
+
+# Copy app
+COPY . .
+
+# Set permissions for storage and bootstrap/cache directories
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Set the correct permissions for storage and bootstrap/cache directories
+RUN chmod -R 777 /var/www/storage /var/www/bootstrap/cache
+
+
+EXPOSE 9000
+
+CMD ["php-fpm"]
