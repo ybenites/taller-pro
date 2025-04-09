@@ -19,6 +19,10 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - app-net
+      - db-net
+      - redis-net
 
   web:
     image: nginx:alpine
@@ -29,6 +33,9 @@ services:
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
+    networks:
+      - web-net
+      - app-net
 
   db:
     image: postgres:16
@@ -40,6 +47,8 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - db-net
 
   redis:
     image: redis:7-alpine
@@ -47,7 +56,19 @@ services:
       - redis-data:/data
     ports:
       - "6379:6379"
+    networks:
+      - redis-net
 
+networks:
+  app-net:
+    driver: bridge
+  web-net:
+    driver: bridge
+  db-net:
+    driver: bridge
+  redis-net:
+    driver: bridge
+    
 volumes:
   db-data:
   redis-data:
